@@ -17,6 +17,10 @@ You'll ride thermals, dodge hunters, loot abandoned houses, and yes — you can 
 Oh, and there's a jet boost. Because why not?
 <img width="1459" height="740" alt="Screenshot 2026-04-01 at 09 26 22" src="https://github.com/user-attachments/assets/f957ea02-6d58-4741-af2a-8396bb57e5ba" />
 
+<img width="1426" height="823" alt="Screenshot 2026-04-01 at 09 28 53" src="https://github.com/user-attachments/assets/82fb8b9f-79b2-476e-ba6a-e3b4d1ae4aee" />
+
+
+
 ---
 
 ## 🕹️ Controls
