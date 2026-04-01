@@ -2,10 +2,19 @@
 
 **A first-person bird flight survival game** — soar as an albatross through a procedurally generated world, gather resources, craft tools, and survive the night.
 
-> ⚠️ **Status:** Work-in-Progress Prototype
+> ⚠️ **Status:** Work-in-Progress Prototype — *Your feedback shapes the game!*
 
 ---
 
+## 🎮 So... What Is This?
+
+You're an albatross. You fly. You survive. Simple, right?
+
+Well... not exactly.
+
+You'll ride thermals, dodge hunters, loot abandoned houses, and yes — you can **ram enemies at high speed** because who needs weapons when you have momentum?
+
+Oh, and there's a jet boost. Because why not?
 
 ---
 
@@ -17,52 +26,112 @@
 | Steer / move | `W` `A` `S` `D` |
 | Takeoff run | Hold `W` + `SPACE` while grounded |
 | Glide / regenerate flaps | Hold `SPACE` in air |
-| Use flap (boost upward) | `F` (🪶 in hotbar) |
-| Use jet boost | `J` (🧨 in hotbar) |
+| Use flap (boost upward) | `F` (🪶 in hotbar, can be found in chests that look awkward (like a random box)) |
+| Use jet boost | `J` (🧨 in hotbar, no cooldown yet!  Just don't use them when you are still boosting or landing!) |
 | Select hotbar slot | `1` – `9` |
 | Open backpack | `B` |
-| Open crafting | `C` | (this feature is to be developed, will be avaliable in 0.0.2)
+| Open crafting | `C` | *(coming in v0.0.2 — be patient with me!)*
 
 ---
 
 ## 🌍 Features
 
 ### Flight
-- **22:1 glide ratio** — realistic aerodynamics
-- **Thermal lift** — ride rising air over savannas
-- **Flap system** — boost upward, regenerate while gliding
-- **Jet boost** — explosive acceleration
+- **22:1 glide ratio** — yep, it actually feels like flying
+- **Thermal lift** — savannas = free altitude
+- **Flap system** — boost up, glide to recharge *(recharge system sometimes glitches — working on it!  Feel free for suggestions!)*
+- **Jet boost** — *zoom forward at 1G for 5 seconds!  Cool down and regeneration is indie*
+- **Take off** - press W key hard, choose a mountain if possible (once you reach around 30-40 KM/H, pitch up, and flap to gain height!).
 
 ### Survival
-- **Health system** — regenerate over time
-- **Day/night cycle** — hunters emerge at night
-- **Resource gathering** — collect flaps from houses and chests, press F to use them
-
+- **Health system** — don't crash. seriously.
+- **Day/night cycle** — hunters come out at night. run or fight.
+- **Resource gathering** — loot chests, hoard flaps, press F to fly higher
+> **💡 Survival 101:** Loot villages during the day → stockpile flaps → when hunters appear at night, either OUTFLY them or RAM them from above. Speed = damage. Don't crash! The damage equation is (speed-40)*2!
 
 ### World
 - **Procedural terrain** — infinite meadows, savanna, taiga, desert
-- **Villages & chests** — find loot stashes
-- **Dynamic water & clouds** — living environment (Don't expect the water to be releastic...)
+- **Villages & chests** — free stuff! (my favorite)
+- **Dynamic water & clouds** — looks decent, I promise
 
 ### Combat
-- **Ram enemies** — speed = damage (faster hits harder!)
-- **Hunters** — dark figures with glowing red eyes
+- **Ram enemies** — faster you go, harder you hit. physics!
+- **Hunters** — tall, dark, red eyes. they want you gone.
 
 ---
 
-## 🛠️ Tech
+## 🛠️ Tech Stack
 
-- **Three.js** — 3D rendering
-- **Vanilla JS** — physics, inventory, world gen
-- **Perlin Noise** — terrain generation
+- **Three.js** — 3D magic
+- **Vanilla JS** — no frameworks, just pure pain and passion
+- **Perlin Noise** — because flat worlds are boring
 
 ---
 
-## 🧪 To-Do
+## 📥 How to Play (It's Easy, I Swear)
 
-- [ ] Complete tree chopping with animations
-- [ ] Expand crafting recipes
-- [ ] Add more enemy types
-- [ ] Sound effects and music
-- [ ] Performance optimization
-- [ ] Add more ores like tungsten
+1. **Download** the `albatrosssurvival.html` file:
+   - Click the file in this repository
+   - Hit that **"Download raw file"** button (or right-click → Save As)
+
+2. **Open** it in a modern browser:
+   - ✅ Chrome (smooth as butter)
+   - ✅ Edge (works great)
+   - ✅ Firefox (solid choice)
+   - ⚠️ Safari — *might work, might cry. let me know!*
+
+3. **Click** the game window to lock your mouse, then **W + Space** to take off!
+
+4. **Try not to crash.** (you will crash. it's okay. we've all been there.  The physics might be weird)
+
+---
+
+## 💬 I Need Your Help!
+
+This is a **prototype**. It's rough. It's janky. But it's *mine*, and I want to make it better.
+
+**Here's where you come in:**
+
+- 🐛 **Found a bug?** Tell me! (seriously, please)
+- 💡 **Have an idea?** Share it! I'm all ears
+- 😤 **Something feels unfair?** Let me know — I'll tweak it
+- ❤️ **Like something?** Say that too! keeps me motivated
+
+👉 **Drop a comment, open an issue, or just yell into the void — I'll read it.**
+
+---
+
+## 🧪 What's Coming Next (v0.0.2 and beyond)
+
+- [ ] Tree chopping with actual animations
+- [ ] More crafting recipes (tools, weapons, maybe a glider upgrade? Or sky cities?)
+- [ ] More enemy types (because hunters get lonely)
+- [ ] Sound effects + music (so you can fly in style)
+- [ ] Performance fixes (less lag, more flap, fixed glitches)
+- [ ] Tungsten ore (shiny!)
+
+*Want something added? Tell me!*
+
+---
+
+## 🙌 Final Thoughts
+
+This game started as a "wouldn't it be cool if..." and now it's something I'm actually proud of.
+
+Is it finished? Nope.
+Is it fun? I think so.
+Could it be better? **Absolutely.** That's where you come in.
+
+So download it, crash a few times, ram a hunter, and let me know what you think.
+
+**Fly safe. Or don't. Just have fun.**
+
+---
+
+*— A solo dev trying to make something cool* 🕊️
+
+---
+
+## 📄 License
+
+MIT — go wild. Fork it, break it, learn from it. Just don't sell it without giving credit, yeah?
