@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ALBATROSS - REAL FLIGHT | 22:1 Glide | Pitch Control | Flap Regen | JET STREAMS</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', monospace; background: #000; }
+        canvas { display: block; }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 100;
+            text-shadow: 1px 1px 0 #000;
+            font-weight: bold;
+        }
+        .panel {
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            padding: 8px 18px;
+            border-radius: 32px;
+            border-left: 4px solid #88aaff;
+            color: #f0f0f0;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .flap-bar-bg {
+            width: 180px;
+            height: 14px;
+            background: #2a2a3a;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-top: 4px;
+            border: 1px solid #88aaff;
+        }
+        #flapFill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #66ccff, #aaffff);
+            transition: width 0.1s;
+        }
+        #instructions {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            background: rgba(0,0,0,0.85);
+            color: #ccddff;
+            padding: 12px 18px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-family: monospace;
+            pointer-events: none;
+            z-index: 200;
+            backdrop-filter: blur(4px);
+            max-width: 420px;
+            line-height: 1.6;
+        }
+        #flightMeter {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.85);
+            padding: 12px 20px;
+            border-radius: 30px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #aaffdd;
+            pointer-events: none;
+            text-align: right;
+            min-width: 220px;
+            backdrop-filter: blur(4px);
+            border-right: 3px solid #88aaff;
+        }
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 1000;
+        }
+        .alt-meter {
+            position: absolute;
+            top: 90px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #ffaa66;
+            pointer-events: none;
+            font-weight: bold;
+        }
+        .takeoff-warning {
+            position: absolute;
+            bottom: 140px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            color: #ffaa66;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-family: monospace;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+            white-space: nowrap;
+            border: 1px solid #ffaa66;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 150;
+        }
+        #debugInfo {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            background: rgba(0,0,0,0.6);
+            color: #88ffaa;
+            font-family: monospace;
+            font-size: 10px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+
+        /* === INVENTORY UI === */
+        #hotbar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 6px;
+            background: rgba(0,0,0,0.75);
+            padding: 8px 12px;
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            border: 2px solid #88aaff;
+            z-index: 250;
+        }
+        .slot {
+            width: 62px;
+            height: 62px;
+            background: rgba(30,30,40,0.95);
+            border: 3px solid #445566;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            position: relative;
+            cursor: grab;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            transition: all 0.1s;
+        }
+        .slot:hover { border-color: #88aaff; }
+        .slot .count {
+            position: absolute;
+            bottom: 4px;
+            right: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 1px 1px 2px #000;
+        }
+        .slot.selected {
+            border-color: #aaffff;
+            box-shadow: 0 0 12px #aaffff;
+        }
+
+        #inventoryScreen {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(10,12,20,0.96);
+            padding: 24px 30px;
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(136,170,255,0.6);
+            z-index: 300;
+            border: 3px solid #88aaff;
+            max-width: 620px;
+        }
+        #inventoryGrid {
+            display: grid;
+            grid-template-columns: repeat(9, 62px);
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+<div id="ui">
+    <div class="panel">🕊️ ALBATROSS FLIGHT SIM</div>
+
+    <!-- NEW HEALTH BAR -->
+    <div class="panel" style="border-left: 4px solid #ff5555;">
+        ❤️ HEALTH
+        <div style="width: 180px; height: 14px; background:#2a2a3a; border-radius:20px; overflow:hidden; margin-top:4px; border:1px solid #ff5555;">
+            <div id="healthFill" style="width:100%; height:100%; background:linear-gradient(90deg, #ff5555, #ffaa77); transition:width 0.3s;"></div>
+        </div>
+        <span id="healthText">150 / 150</span>
+    </div>
+
+    <div class="panel">🪶 FLAPS <div class="flap-bar-bg"><div id="flapFill"></div></div><span id="flapCount">9</span></div>
+    <div class="panel">🌍 <span id="biomeTag">MEADOW</span> &nbsp;| 🔥 <span id="thermalValue">NONE</span></div>
+</div>
+
+<div id="instructions">
+    🖱️ CLICK to lock mouse | MOUSE = PITCH + YAW<br>
+    WASD = steer | SPACE = glide + flap regen<br>
+    F = use flap (must select 🪶) | J = jet boost (must select 🧨)<br>
+    1-9 = select hotbar | B = open backpack
+</div>
+
+<div id="flightMeter">
+    🕊️ STATUS: <span id="flightStatus" style="color:#ffff88">GROUNDED</span><br>
+    🌀 SPEED: <span id="speedValue">0</span> km/h<br>
+    📈 VERTICAL: <span id="vertSpeed">0.0</span> m/s<br>
+    🪶 FLAPS: <span id="flapCountDisplay">9</span><br>
+    🧨 JET: <span id="jetCountDisplay">64</span><br>
+    📐 PITCH: <span id="pitchAngle">0</span>°
+</div>
+
+<div class="alt-meter" id="altDisplay">⬆️ ALT: 0 m</div>
+<div class="takeoff-warning" id="takeoffWarning">🏃‍♂️ RUN TO 28 KM/H TO TAKE OFF! HOLD W + SPACE 🏃‍♂️</div>
+<div class="crosshair"></div>
+<div id="debugInfo">🌍 WORLD LOADING...</div>
+
+<!-- HOTBAR -->
+<div id="hotbar"></div>
+
+<!-- FULL BACKPACK -->
+<div id="inventoryScreen">
+    <div style="margin-bottom:12px; text-align:center; color:#ccddff; font-size:22px; font-weight:bold;">🧳 BACKPACK</div>
+    <div id="inventoryGrid"></div>
+    <div style="margin-top:22px; text-align:center; color:#88aaff; font-size:12px;">
+        Drag items to rearrange • Hotbar = 1-9 • B to close
+    </div>
+</div>
+<!-- IMPROVED 4x4 CRAFTING SCREEN -->
+<div id="craftingScreen" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(12,15,28,0.97); padding:28px 40px; border-radius:24px; box-shadow:0 0 60px rgba(136,170,255,0.75); z-index:400; border:4px solid #88aaff; color:#f0f0f0; max-width:860px;">
+
+    <div style="text-align:center; margin-bottom:20px;">
+        <span style="font-size:28px;">🪹</span>
+        <span style="font-size:24px; font-weight:bold; color:#aaffdd;"> NEST FORGE - CRAFTING</span>
+    </div>
+
+    <div style="display:flex; gap:50px; align-items:center; justify-content:center;">
+
+        <!-- 4x4 Grid -->
+        <div>
+            <div style="color:#88aaff; font-size:14px; margin-bottom:10px; text-align:center;">4×4 INGREDIENT GRID</div>
+            <div id="craftingGrid" style="display:grid; grid-template-columns:repeat(4, 72px); gap:10px; background:rgba(0,0,0,0.5); padding:16px; border-radius:18px; border:2px solid #445577;"></div>
+        </div>
+
+        <div style="font-size:68px; color:#88aaff; margin-top:20px;">→</div>
+
+        <!-- Result -->
+        <div style="text-align:center;">
+            <div style="color:#88aaff; font-size:14px; margin-bottom:12px;">RESULT</div>
+            <div id="craftResultSlot" class="slot" style="width:88px; height:88px; font-size:52px; margin:0 auto; border-color:#aaff88; box-shadow:0 0 20px #aaff88;"></div>
+
+            <button id="craftButton" style="margin-top:24px; padding:12px 40px; background:#1e4a1e; color:#ddffcc; border:2px solid #88ffaa; border-radius:40px; font-family:monospace; font-size:16px; font-weight:bold; cursor:pointer;">
+                CRAFT
+            </button>
+        </div>
+    </div>
+
+    <div style="text-align:center; margin-top:24px; color:#7799cc; font-size:13px;">
+        Drag items from Backpack → Press <b>C</b> to close
+    </div>
+</div>
+
+<script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.168.0/build/three.module.js" } }
+</script>
+<script type="module">
+    import * as THREE from 'three';
+
+    // ==================== REAL FLIGHT PHYSICS ====================
+    const FLIGHT = {
+        chunkSize: 150,
+        renderDist: 4,
+        waterLevel: 5.8,
+        gravity: -14.0,
+        flapForce: 12.5,
+        flapRegenRate: 0.22,
+        glideRatio: 22.0,
+        takeoffSpeed: 28,
+        groundAccel: 24,
+        maxAirSpeed: 200,
+        minAirSpeed: 14,
+        airDrag: 0.999,
+        thermalLift: 8.5,
+        alignmentStrength: 0.16,
+        jetBoostAccel: 9.8,
+        jetDuration: 5.0
+    };
+
+    // ==================== INVENTORY SYSTEM ====================
+    let playerHealth = 150;
+    const MAX_HEALTH = 150;
+    let lastRegenTime = Date.now();
+    let inventory = Array(36).fill(null);
+    let selectedHotbar = 0;
+    let lastSpeedOnGround = 0;   // Used to detect hard landing
+    const ITEM_DB = {
+        flap: { emoji: '🪶', maxStack: 64, color: '#66ccff' },
+        jet:  { emoji: '🧨', maxStack: 64, color: '#ffaa66' },
+        stone: { emoji: '🥌', maxStack: 16, color: '#888888' }   // Oval stone
+    };
+    // ==================== BASIC CRAFTING SYSTEM (Step 2) ====================
+    let craftingOpen = false;
+
+    function openCrafting() {
+        const screen = document.getElementById('craftingScreen');
+        if (screen) {
+            screen.style.display = 'block';
+            craftingOpen = true;
+            renderCraftingGrid();        // This creates the real 4x4 slots
+        }
+    }
+
+    function closeCrafting() {
+        const screen = document.getElementById('craftingScreen');
+        screen.style.display = 'none';
+        craftingOpen = false;
+    }
+    // ==================== REAL 4x4 CRAFTING GRID ====================
+    let craftingSlots = Array(16).fill(null);   // Stores items in the 4x4 grid
+
+    function renderCraftingGrid() {
+        const gridContainer = document.getElementById('craftingGrid');
+        gridContainer.innerHTML = '';
+
+        for (let i = 0; i < 16; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'slot';
+            slot.style.width = '72px';
+            slot.style.height = '72px';
+            slot.dataset.index = i;
+
+            const item = craftingSlots[i];
+            if (item) {
+                slot.innerHTML = `
+                    <span>${ITEM_DB[item.type].emoji}</span>
+                    <span class="count">${item.count}</span>
+                `;
+            }
+
+            // Drag & Drop support
+            slot.draggable = true;
+            slot.addEventListener('dragstart', (e) => {
+                if (item) {
+                    e.dataTransfer.setData('text/plain', i);
+                }
+            });
+
+            slot.addEventListener('dragover', (e) => e.preventDefault());
+            slot.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+
+                // Swap items between crafting slots
+                const temp = craftingSlots[i];
+                craftingSlots[i] = craftingSlots[fromIndex];
+                craftingSlots[fromIndex] = temp;
+
+                renderCraftingGrid();
+            });
+
+            gridContainer.appendChild(slot);
+        }
+    }
+
+    function resetCraftingGrid() {
+        craftingSlots = Array(16).fill(null);
+        renderCraftingGrid();
+    }
+
+    function getTotal(type) {
+        return inventory.reduce((sum, slot) => sum + (slot && slot.type === type ? slot.count : 0), 0);
+    }
+
+    function initInventory() {
+        inventory = Array(36).fill(null);
+        inventory[0] = { type: 'flap', count: 9 };
+        inventory[1] = { type: 'jet',  count: 64 };
+        selectedHotbar = 0;
+    }
+
+    function createSlot(index) {
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.dataset.index = index;
+        slot.draggable = true;
+
+        const updateVisual = () => {
+            const data = inventory[index];
+            if (data) {
+                slot.innerHTML = `
+                    <span>${ITEM_DB[data.type].emoji}</span>
+                    <span class="count">${data.count}</span>
+                `;
+                slot.style.borderColor = (index < 9 && index === selectedHotbar) ? '#aaffff' : ITEM_DB[data.type].color;
+            } else {
+                slot.innerHTML = '';
+                slot.style.borderColor = (index < 9 && index === selectedHotbar) ? '#aaffff' : '#445566';
+            }
+        };
+        updateVisual();
+
+        slot.addEventListener('dragstart', e => {
+            if (!inventory[index]) { e.preventDefault(); return; }
+            e.dataTransfer.setData('text/plain', index.toString());
+            slot.style.opacity = '0.4';
+        });
+        slot.addEventListener('dragend', () => slot.style.opacity = '1');
+
+        slot.addEventListener('dragover', e => e.preventDefault());
+        slot.addEventListener('drop', e => {
+            e.preventDefault();
+            const from = parseInt(e.dataTransfer.getData('text/plain'));
+            if (from === index) return;
+
+            const fromItem = inventory[from];
+            let targetItem = inventory[index];
+
+            if (!fromItem) return;
+
+            if (!targetItem) {
+                inventory[index] = fromItem;
+                inventory[from] = null;
+            } else if (targetItem.type === fromItem.type) {
+                const space = ITEM_DB[fromItem.type].maxStack - targetItem.count;
+                const moveAmt = Math.min(fromItem.count, space);
+                if (moveAmt > 0) {
+                    targetItem.count += moveAmt;
+                    fromItem.count -= moveAmt;
+                    if (fromItem.count <= 0) inventory[from] = null;
+                }
+            } else {
+                inventory[index] = fromItem;
+                inventory[from] = targetItem;
+            }
+
+            renderHotbar();
+            renderFullInventory();
+        });
+
+        return slot;
+    }
+
+    function renderHotbar() {
+        const container = document.getElementById('hotbar');
+        container.innerHTML = '';
+        for (let i = 0; i < 9; i++) {
+            const slot = createSlot(i);
+            container.appendChild(slot);
+        }
+    }
+
+    function renderFullInventory() {
+        const grid = document.getElementById('inventoryGrid');
+        grid.innerHTML = '';
+        for (let i = 9; i < 36; i++) {
+            const slot = createSlot(i);
+            grid.appendChild(slot);
+        }
+    }
+
+    // ==================== GLOBALS ====================
+    let scene, camera, renderer, clock;
+    let chunks = new Map();
+    let waterMesh, cloudsGroup;
+    let velocity = new THREE.Vector3(0, 0, 0);
+    let isOnGround = true;
+    let isGliding = false;
+    let takeoffRunSpeed = 0;
+    let yaw = -1.2, pitch = -0.1, targetYaw = yaw, targetPitch = pitch;
+    let move = { forward: false, backward: false, left: false, right: false };
+    let spaceHeld = false;
+    let flapPressed = false;
+    let jetPressed = false;
+    let lastFlapTime = 0;
+    let jetBoostEndTime = 0;
+    let flapRegenTimer = 0;
+    let thermalStrength = 0;
+    let spawnChunkX = 0;
+    let spawnChunkZ = 0;
+    let chestMesh = null;
+    let houses = [];
+    let keys = {};
+    // ==================== HUNTERS & DAY/NIGHT ====================
+    let hunters = [];
+    let isNight = false;
+    let dayTime = 0;                    // 0 to 1 (0 = midnight, 0.5 = noon)
+    const DAY_LENGTH = 120;             // seconds for full day cycle (you can change)
+    let lastAttackTime = 0;
+    let lastPlayerHitTime = 0;
+
+    // Simple blood particle system
+    let bloodParticles = [];
+
+    // PERLIN NOISE
+    let perlinPerm = new Array(512);
+
+    // TEXTURES
+    const texConfig = {
+        grass: { size: 2048, baseColor: '#3a8f38', darkPatches: '#246526', darkAlpha: 0.55, strokeColor: '#1f5a22', strokeWidth: 6, highlightColor: '#6be14f', highlightWidth: 3.5 },
+        taigaGrass: { size: 2048, baseColor: '#2e7d32', darkPatches: '#1e5a22', darkAlpha: 0.6, strokeColor: '#1a4a1f', strokeWidth: 6, highlightColor: '#4caf50', highlightWidth: 3.5 },
+        savannaGrass: { size: 2048, baseColor: '#c2a04d', darkPatches: '#a67c2b', darkAlpha: 0.5, strokeColor: '#8b5a2b', strokeWidth: 5, highlightColor: '#e0c070', highlightWidth: 3 },
+        desertSand: { size: 2048, baseColor: '#e2c9a0', darkPatches: '#d4b07a', darkAlpha: 0.4, strokeColor: '#c39a5f', strokeWidth: 4, highlightColor: '#f5e4c0', highlightWidth: 2.5 }
+    };
+    let T = {};
+
+    function createGrassTexture(cfg) {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = cfg.size;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = cfg.baseColor; ctx.fillRect(0, 0, cfg.size, cfg.size);
+        ctx.fillStyle = cfg.darkPatches;
+        for (let i = 0; i < 160; i++) {
+            const x = Math.random() * cfg.size, y = Math.random() * cfg.size;
+            ctx.globalAlpha = cfg.darkAlpha;
+            ctx.fillRect(x - 35, y - 35, 70, 70);
+        }
+        ctx.globalAlpha = 1.0;
+        ctx.strokeStyle = cfg.strokeColor; ctx.lineWidth = cfg.strokeWidth;
+        for (let i = 0; i < 52000; i++) {
+            const x = Math.random() * cfg.size, y = Math.random() * cfg.size;
+            const len = 30 + Math.random() * 80;
+            ctx.save(); ctx.translate(x, y); ctx.rotate((Math.random() - 0.5) * 1.6);
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -len); ctx.stroke(); ctx.restore();
+        }
+        ctx.strokeStyle = cfg.highlightColor; ctx.lineWidth = cfg.highlightWidth;
+        for (let i = 0; i < 32000; i++) {
+            const x = Math.random() * cfg.size, y = Math.random() * cfg.size * 0.65;
+            const len = 15 + Math.random() * 45;
+            ctx.save(); ctx.translate(x, y); ctx.rotate((Math.random() - 0.5) * 1.2);
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -len); ctx.stroke(); ctx.restore();
+        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(4, 4);
+        return tex;
+    }
+
+    function initTextures() {
+        T.grassTex = createGrassTexture(texConfig.grass);
+        T.taigaTex = createGrassTexture(texConfig.taigaGrass);
+        T.savannaTex = createGrassTexture(texConfig.savannaGrass);
+        T.desertTex = createGrassTexture(texConfig.desertSand);
+    }
+
+    function initPerlin() {
+        const permSrc = [151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180];
+        for (let i = 0; i < 256; i++) perlinPerm[i] = perlinPerm[i+256] = permSrc[i];
+    }
+    function fade(t) { return t*t*t*(t*(t*6-15)+10); }
+    function lerp(a,b,t) { return a + t*(b-a); }
+    function grad3(hash, x, y, z) {
+        const h = hash & 15;
+        const u = h < 8 ? x : y;
+        const v = h < 4 ? y : (h === 12 || h === 14 ? x : z);
+        return ((h&1)===0 ? u : -u) + ((h&2)===0 ? v : -v);
+    }
+    function perlin3D(x, y, z) {
+        let X = Math.floor(x) & 255, Y = Math.floor(y) & 255, Z = Math.floor(z) & 255;
+        x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
+        const u = fade(x), v = fade(y), w = fade(z);
+        const aaa = perlinPerm[perlinPerm[perlinPerm[X] + Y] + Z];
+        const aba = perlinPerm[perlinPerm[perlinPerm[X] + Y+1] + Z];
+        const aab = perlinPerm[perlinPerm[perlinPerm[X] + Y] + Z+1];
+        const abb = perlinPerm[perlinPerm[perlinPerm[X] + Y+1] + Z+1];
+        const baa = perlinPerm[perlinPerm[perlinPerm[X+1] + Y] + Z];
+        const bba = perlinPerm[perlinPerm[perlinPerm[X+1] + Y+1] + Z];
+        const bab = perlinPerm[perlinPerm[perlinPerm[X+1] + Y] + Z+1];
+        const bbb = perlinPerm[perlinPerm[perlinPerm[X+1] + Y+1] + Z+1];
+        let x1 = lerp(grad3(aaa,x,y,z), grad3(baa,x-1,y,z), u);
+        let x2 = lerp(grad3(aba,x,y-1,z), grad3(bba,x-1,y-1,z), u);
+        let y1 = lerp(x1, x2, v);
+        x1 = lerp(grad3(aab,x,y,z-1), grad3(bab,x-1,y,z-1), u);
+        x2 = lerp(grad3(abb,x,y-1,z-1), grad3(bbb,x-1,y-1,z-1), u);
+        let y2 = lerp(x1, x2, v);
+        return (lerp(y1, y2, w) + 1) * 0.5;
+    }
+
+    function getTerrainHeightAndBiome(wx, wz) {
+        let h = 0, amp = 52, freq = 0.0034;
+        for (let i = 0; i < 5; i++) {
+            h += (perlin3D(wx * freq, 0, wz * freq) * 2 - 1) * amp;
+            amp *= 0.46; freq *= 2.18;
+        }
+        const noise = perlin3D(wx * 0.0012, 12, wz * 0.0012);
+        let biome = 'meadow';
+        if (noise > 0.68) biome = 'taiga';
+        else if (noise > 0.45) biome = 'savanna';
+        else if (noise < 0.22) biome = 'desert';
+        const height = Math.max(h + 9, 3.2);
+        return { height, biome };
+    }
+
+function createChunk(cx, cz) {
+    const key = `${cx},${cz}`;
+    if (chunks.has(key)) return;
+
+    const geometry = new THREE.PlaneGeometry(FLIGHT.chunkSize, FLIGHT.chunkSize, 14, 14);
+    geometry.rotateX(-Math.PI/2);
+    const positions = geometry.attributes.position.array;
+
+    for (let i = 0; i < positions.length; i += 3) {
+        const lx = positions[i], lz = positions[i+2];
+        const worldX = cx * FLIGHT.chunkSize + lx;
+        const worldZ = cz * FLIGHT.chunkSize + lz;
+
+        const { height, biome } = getTerrainHeightAndBiome(worldX, worldZ);
+        positions[i+1] = height;
+    }
+    geometry.computeVertexNormals();
+
+    const centerBiomeData = getTerrainHeightAndBiome(
+        cx * FLIGHT.chunkSize + FLIGHT.chunkSize/2,
+        cz * FLIGHT.chunkSize + FLIGHT.chunkSize/2
+    );
+    const biome = centerBiomeData.biome;
+
+    let mat;
+    if (biome === 'taiga') mat = new THREE.MeshStandardMaterial({ map: T.taigaTex, roughness: 0.9 });
+    else if (biome === 'savanna') mat = new THREE.MeshStandardMaterial({ map: T.savannaTex, roughness: 0.92 });
+    else if (biome === 'desert') mat = new THREE.MeshStandardMaterial({ map: T.desertTex, roughness: 0.95 });
+    else mat = new THREE.MeshStandardMaterial({ map: T.grassTex, roughness: 0.88 });
+
+    const terrain = new THREE.Mesh(geometry, mat);
+    terrain.position.set(cx * FLIGHT.chunkSize, 0, cz * FLIGHT.chunkSize);
+    scene.add(terrain);
+
+    // === SMART GRASS SPAWNING ===
+    let grassGroup = null;
+    if (biome !== 'desert') {
+        grassGroup = new THREE.Group();
+        const grassMat = new THREE.MeshStandardMaterial({ color: 0x6a9a4a });
+
+        const isSpawnChunk = (cx === spawnChunkX && cz === spawnChunkZ);
+        const grassCount = isSpawnChunk ? 30 : 280;
+
+        for (let i = 0; i < grassCount; i++) {
+            const lx = (Math.random() - 0.5) * (FLIGHT.chunkSize - 20);
+            const lz = (Math.random() - 0.5) * (FLIGHT.chunkSize - 20);
+            const h = getTerrainHeightAndBiome(cx * FLIGHT.chunkSize + lx, cz * FLIGHT.chunkSize + lz).height;
+
+            if (h > FLIGHT.waterLevel + 0.8) {
+                const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.5 + Math.random() * 0.6, 3), grassMat);
+                blade.position.set(lx, h + 0.3, lz);
+                grassGroup.add(blade);
+            }
+        }
+        scene.add(grassGroup);
+    }
+
+    // === INFINITE HOUSE SPAWNING ===
+    spawnHousesInChunk(cx, cz);
+
+    // === HUNTER SPAWNING (only at night) ===
+    spawnHunterInChunk(cx, cz);
+
+    chunks.set(key, { terrain, grass: grassGroup });
+}
+function updateHunters(delta) {
+    const now = Date.now();
+
+    for (let i = hunters.length - 1; i >= 0; i--) {
+        const h = hunters[i];
+        if (!h || !h.userData) continue;
+
+        const data = h.userData;
+
+        const dx = camera.position.x - h.position.x;
+        const dz = camera.position.z - h.position.z;
+        const dist = Math.hypot(dx, dz);
+
+        // Chase player if close
+        if (dist < 80 && dist > 3) {
+            const speed = 12;
+            h.position.x += (dx / dist) * speed * delta;
+            h.position.z += (dz / dist) * speed * delta;
+
+            // Face player
+            h.lookAt(camera.position.x, h.position.y + 3, camera.position.z);
+        }
+
+        // Hunter attacks player
+        if (dist < 4 && now - (data.lastAttack || 0) > 1200) {
+            if (now - (lastPlayerHitTime || 0) > 800) {
+                playerHealth = Math.max(0, playerHealth - 1);
+                lastPlayerHitTime = now;
+
+                const warning = document.getElementById('takeoffWarning');
+                warning.innerHTML = `🩸 HUNTER ATTACK! -1 HP`;
+                warning.style.opacity = '1';
+                warning.style.color = '#ff5555';
+                setTimeout(() => warning.style.opacity = '0', 900);
+            }
+            data.lastAttack = now;
+        }
+
+        // === NEW RAMMING ATTACK SYSTEM ===
+        // Damage = speedKmh / 2  (faster = more damage)
+        if (dist < 8 && keys['click'] && now - (lastAttackTime || 0) > 600) {
+            keys['click'] = false;
+            lastAttackTime = now;
+
+            const horizontalSpeed = Math.hypot(velocity.x, velocity.z);
+            const speedKmh = horizontalSpeed * 3.6;
+            const damage = Math.max(1, Math.floor(speedKmh / 2));
+
+            data.health = (data.health || 5) - damage;
+
+            // Bleed effect
+            createBloodParticles(h.position.x, h.position.y + 3.5, h.position.z);
+
+            // Feedback message
+            const warning = document.getElementById('takeoffWarning');
+            warning.innerHTML = `💥 RAM HIT! -${damage} DMG (${data.health}/5)`;
+            warning.style.opacity = '1';
+            warning.style.color = speedKmh > 60 ? '#ff4444' : '#ffff66';
+
+            setTimeout(() => {
+                warning.style.opacity = '0';
+            }, 700);
+
+            if (data.health <= 0) {
+                scene.remove(h);
+                hunters.splice(i, 1);
+
+                const deathMsg = document.getElementById('takeoffWarning');
+                deathMsg.innerHTML = `💀 HUNTER DEFEATED!`;
+                deathMsg.style.opacity = '1';
+                deathMsg.style.color = '#aaffaa';
+                setTimeout(() => deathMsg.style.opacity = '0', 1400);
+            }
+        }
+    }
+}
+
+// Simple blood particles
+function createBloodParticles(x, y, z) {
+    for (let i = 0; i < 8; i++) {
+        const p = new THREE.Mesh(
+            new THREE.SphereGeometry(0.15, 4, 4),
+            new THREE.MeshStandardMaterial({ color: 0xaa0000 })
+        );
+        p.position.set(x, y, z);
+        p.userData = {
+            life: 1.2 + Math.random(),
+            vel: new THREE.Vector3(
+                (Math.random() - 0.5) * 12,
+                6 + Math.random() * 8,
+                (Math.random() - 0.5) * 12
+            )
+        };
+        scene.add(p);
+        bloodParticles.push(p);
+    }
+}
+
+function updateBloodParticles(delta) {
+    for (let i = bloodParticles.length - 1; i >= 0; i--) {
+        const p = bloodParticles[i];
+        p.userData.vel.y -= 25 * delta;
+        p.position.addScaledVector(p.userData.vel, delta);
+        p.userData.life -= delta;
+
+        if (p.userData.life <= 0) {
+            scene.remove(p);
+            bloodParticles.splice(i, 1);
+        }
+    }
+}
+
+    // Flatten starting chunk into a nice runway
+    function flattenSpawnRunway() {
+        const key = `${spawnChunkX},${spawnChunkZ}`;
+        const data = chunks.get(key);
+        if (!data || !data.terrain) return;
+
+        const positions = data.terrain.geometry.attributes.position.array;
+        for (let i = 0; i < positions.length; i += 3) {
+            positions[i + 1] = 12;        // Flat height
+        }
+        data.terrain.geometry.attributes.position.needsUpdate = true;
+        data.terrain.geometry.computeVertexNormals();
+    }
+
+    // Spawn starter chest near spawn
+    function spawnStarterChest() {
+        const chestGeo = new THREE.BoxGeometry(4, 3, 6);
+        const chestMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B, roughness: 0.85 });
+        chestMesh = new THREE.Mesh(chestGeo, chestMat);
+
+        chestMesh.position.set(
+            spawnChunkX * FLIGHT.chunkSize + 45,
+            13,
+            spawnChunkZ * FLIGHT.chunkSize + 35
+        );
+
+        scene.add(chestMesh);
+
+        console.log("🏠 Starter chest spawned on runway!");
+    }
+    // Generate small villages / houses
+
+
+
+
+// ==================== INFINITE HOUSE SPAWNING ====================
+let houseData = new Map();   // key: "cx,cz" → array of houses in that chunk
+
+function generateHouses() {
+    // This is now called from createChunk() — no longer called once in init()
+    houses = []; // clear old reference if needed
+}
+
+function spawnHousesInChunk(cx, cz) {
+    const key = `${cx},${cz}`;
+
+    // Prevent spawning houses multiple times in the same chunk
+    if (houseData.has(key)) return;
+
+    const chunkHouses = [];
+    const worldOffsetX = cx * FLIGHT.chunkSize;
+    const worldOffsetZ = cz * FLIGHT.chunkSize;
+
+    // How many houses per chunk? (0–2 is nice and natural)
+    const numHouses = Math.random() < 0.35 ? 1 : (Math.random() < 0.12 ? 2 : 0);
+
+    for (let i = 0; i < numHouses; i++) {
+        // Random position inside this chunk
+        const localX = (Math.random() - 0.5) * (FLIGHT.chunkSize - 40);
+        const localZ = (Math.random() - 0.5) * (FLIGHT.chunkSize - 40);
+
+        const worldX = worldOffsetX + localX;
+        const worldZ = worldOffsetZ + localZ;
+
+        const { height } = getTerrainHeightAndBiome(worldX, worldZ);
+
+        // Only spawn on solid land, not too close to water
+        if (height > FLIGHT.waterLevel + 3) {
+            createSimpleHouse(worldX, height + 0.1, worldZ);
+            chunkHouses.push({x: worldX, z: worldZ});
+        }
+    }
+
+    if (chunkHouses.length > 0) {
+        houseData.set(key, chunkHouses);
+    }
+}
+
+    function createSimpleHouse(x, y, z) {
+        const houseGroup = new THREE.Group();
+
+        // Main wooden walls (brown)
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B, roughness: 0.9 });
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0x4A2C1F, roughness: 0.8 });
+
+        // Base floor
+        const floor = new THREE.Mesh(new THREE.BoxGeometry(10, 0.6, 10), wallMat);
+        floor.position.set(x, y + 0.3, z);
+        houseGroup.add(floor);
+
+        // Walls
+        const wall1 = new THREE.Mesh(new THREE.BoxGeometry(10, 6, 0.6), wallMat);
+        wall1.position.set(x, y + 3.3, z + 5);
+        houseGroup.add(wall1);
+
+        const wall2 = wall1.clone();
+        wall2.position.set(x, y + 3.3, z - 5);
+        houseGroup.add(wall2);
+
+        const wall3 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 6, 10), wallMat);
+        wall3.position.set(x + 5, y + 3.3, z);
+        houseGroup.add(wall3);
+
+        const wall4 = wall3.clone();
+        wall4.position.set(x - 5, y + 3.3, z);
+        houseGroup.add(wall4);
+
+        // Roof
+        const roof = new THREE.Mesh(new THREE.BoxGeometry(12, 1.5, 12), roofMat);
+        roof.position.set(x, y + 7, z);
+        roof.rotation.x = Math.PI / 4;
+        houseGroup.add(roof);
+
+        // Door opening (simple dark hole)
+        const door = new THREE.Mesh(new THREE.BoxGeometry(2.5, 4, 0.7), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
+        door.position.set(x, y + 2.2, z + 5.1);
+        houseGroup.add(door);
+
+        scene.add(houseGroup);
+
+        // Spawn chest in front of the house
+        spawnHouseChest(x + 8, y + 1.5, z + 8);
+
+        houses.push(houseGroup);
+    }
+
+    // Spawn chest for each house
+    function spawnHouseChest(x, y, z) {
+        const chestGeo = new THREE.BoxGeometry(4, 3, 6);
+        const chestMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+        const chest = new THREE.Mesh(chestGeo, chestMat);
+        chest.position.set(x, y, z);
+        scene.add(chest);
+
+        // Store reference if needed later
+        chest.userData = { isHouseChest: true, flaps: 128 };
+    }
+
+
+
+        // ==================== DAY / NIGHT CYCLE ====================
+    function updateDayNight(delta) {
+        dayTime = (dayTime + delta / DAY_LENGTH) % 1;
+        isNight = dayTime < 0.25 || dayTime > 0.75;   // Night = 50% of time
+
+        // Change sky & lighting
+        const nightFactor = isNight ? 0.15 : 1.0;
+        scene.background = new THREE.Color().setHSL(0.6, 0.4, 0.6 * nightFactor + 0.1);
+
+        if (sunLight) {
+            sunLight.intensity = isNight ? 0.2 : 1.3;
+            sunLight.color.setHSL(0.1, 0.8, isNight ? 0.3 : 1.0);
+        }
+        if (hemiLight) {
+            hemiLight.intensity = isNight ? 0.3 : 0.7;
+        }
+
+        // Debug
+        document.getElementById('debugInfo').innerHTML = `🌍 CHUNKS: ${chunks.size} | ${isNight ? '🌑 NIGHT' : '☀️ DAY'}`;
+    }
+
+    // Create a hunter (tall dark figure with red eyes)
+    function createHunter(x, y, z) {
+        const hunterGroup = new THREE.Group();
+
+        // Body
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(2, 5, 2), bodyMat);
+        body.position.y = y + 2.5;
+        hunterGroup.add(body);
+
+        // Head
+        const headMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+        const head = new THREE.Mesh(new THREE.SphereGeometry(1.1, 8, 8), headMat);
+        head.position.set(0, y + 5.8, 0);
+        hunterGroup.add(head);
+
+        // Glowing red eyes
+        const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff2222, emissive: 0xff0000, emissiveIntensity: 0.8 });
+        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.25, 6, 6), eyeMat);
+        eyeL.position.set(-0.4, y + 5.9, 0.9);
+        hunterGroup.add(eyeL);
+        const eyeR = eyeL.clone();
+        eyeR.position.x = 0.4;
+        hunterGroup.add(eyeR);
+
+        hunterGroup.userData = {
+            health: 5,
+            lastAttack: 0,
+            velocity: new THREE.Vector3()
+        };
+
+        hunterGroup.position.set(x, y, z);
+        scene.add(hunterGroup);
+        hunters.push(hunterGroup);
+
+        return hunterGroup;
+    }
+
+    // Spawn hunter in a chunk (only at night)
+    function spawnHunterInChunk(cx, cz) {
+        if (!isNight) return;
+
+        const key = `hunter_${cx},${cz}`;
+        if (houseData.has(key)) return;   // reuse houseData map or make new one
+
+        const worldOffsetX = cx * FLIGHT.chunkSize;
+        const worldOffsetZ = cz * FLIGHT.chunkSize;
+
+        const localX = (Math.random() - 0.5) * (FLIGHT.chunkSize - 60);
+        const localZ = (Math.random() - 0.5) * (FLIGHT.chunkSize - 60);
+
+        const worldX = worldOffsetX + localX;
+        const worldZ = worldOffsetZ + localZ;
+        const { height } = getTerrainHeightAndBiome(worldX, worldZ);
+
+        if (height > FLIGHT.waterLevel + 4) {
+            createHunter(worldX, height + 1, worldZ);
+            houseData.set(key, true);   // mark as spawned
+        }
+    }
+
+    function updateChunks() {
+        const cx = Math.floor(camera.position.x / FLIGHT.chunkSize);
+        const cz = Math.floor(camera.position.z / FLIGHT.chunkSize);
+        const keep = new Set();
+        for (let dx = -FLIGHT.renderDist; dx <= FLIGHT.renderDist; dx++) {
+            for (let dz = -FLIGHT.renderDist; dz <= FLIGHT.renderDist; dz++) {
+                const key = `${cx+dx},${cz+dz}`;
+                keep.add(key);
+                if (!chunks.has(key)) createChunk(cx+dx, cz+dz);
+            }
+        }
+        for (let [key, data] of chunks) {
+            if (!keep.has(key)) {
+                scene.remove(data.terrain);
+                if (data.grass) scene.remove(data.grass);
+                chunks.delete(key);
+            }
+        }
+        document.getElementById('debugInfo').innerHTML = `🌍 CHUNKS: ${chunks.size}`;
+    }
+
+    function createWaterAndClouds() {
+        waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(8000, 8000, 64, 64).rotateX(-Math.PI/2),
+            new THREE.MeshStandardMaterial({ color: '#3399dd', metalness: 0.7, roughness: 0.3, transparent: true, opacity: 0.6 }));
+        waterMesh.position.y = FLIGHT.waterLevel;
+        scene.add(waterMesh);
+
+        cloudsGroup = new THREE.Group();
+        const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.7 });
+        for (let i = 0; i < 20; i++) {
+            let c = new THREE.Mesh(new THREE.SphereGeometry(14 + Math.random() * 24, 5, 5), cloudMat);
+            c.position.set((Math.random() - 0.5) * 1800, 100 + Math.random() * 70, (Math.random() - 0.5) * 1800);
+            c.scale.set(2.0, 0.55, 1.5);
+            cloudsGroup.add(c);
+        }
+        scene.add(cloudsGroup);
+    }
+
+    // ==================== PHYSICS + INVENTORY INTEGRATION ====================
+    function updatePhysics(delta) {
+        const { height: terrainH, biome } = getTerrainHeightAndBiome(camera.position.x, camera.position.z);
+        const isOverSavanna = biome === 'savanna';
+
+        const horizontalSpeed = Math.hypot(velocity.x, velocity.z);
+        const speedKmh = horizontalSpeed * 3.6;
+        const vertSpeedMs = velocity.y;
+        const pitchDegrees = Math.floor(pitch * 45);
+
+        const totalFlaps = getTotal('flap');
+        const totalJets  = getTotal('jet');
+
+        document.getElementById('speedValue').innerHTML = Math.floor(speedKmh);
+        document.getElementById('vertSpeed').innerHTML = vertSpeedMs.toFixed(1);
+        document.getElementById('altDisplay').innerHTML = `⬆️ ALT: ${Math.floor(camera.position.y - terrainH)} m`;
+        document.getElementById('flapCountDisplay').innerHTML = totalFlaps;
+        document.getElementById('flapCount').innerHTML = totalFlaps;
+        document.getElementById('jetCountDisplay').innerHTML = totalJets;
+        document.getElementById('flapFill').style.width = `${Math.min(100, totalFlaps / 9 * 100)}%`;
+        document.getElementById('pitchAngle').innerHTML = pitchDegrees;
+
+        thermalStrength = 0;
+        if (isOverSavanna && !isOnGround && camera.position.y < 100) {
+            const thermalNoise = perlin3D(camera.position.x * 0.025, camera.position.z * 0.025, 0);
+            if (thermalNoise > 0.55) thermalStrength = FLIGHT.thermalLift * (thermalNoise - 0.5) * 1.6;
+        }
+        document.getElementById('thermalValue').innerHTML = thermalStrength > 0.5 ? `⬆️ ${thermalStrength.toFixed(1)}` : 'NONE';
+
+        let glideLift = 0;
+        if (!isOnGround && horizontalSpeed > 3) glideLift = horizontalSpeed / FLIGHT.glideRatio;
+
+        // FLAP
+        if (flapPressed && (Date.now() - lastFlapTime > 300) && !isOnGround) {
+            const slot = inventory[selectedHotbar];
+            if (slot && slot.type === 'flap' && slot.count > 0) {
+                slot.count--;
+                lastFlapTime = Date.now();
+                velocity.y += FLIGHT.flapForce;
+                const forwardDir = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+                velocity.x += forwardDir.x * 2.0;
+                velocity.z += forwardDir.z * 2.0;
+                renderHotbar();
+                renderFullInventory();
+            }
+        }
+
+        // FLAP REGEN
+        if (spaceHeld && !isOnGround) {
+            flapRegenTimer += delta;
+            if (flapRegenTimer >= 4.5) {
+                flapRegenTimer = 0;
+                for (let i = 0; i < inventory.length; i++) {
+                    const slot = inventory[i];
+                    if (slot && slot.type === 'flap' && slot.count < ITEM_DB.flap.maxStack) {
+                        slot.count++;
+                        renderHotbar();
+                        renderFullInventory();
+                        break;
+                    }
+                }
+            }
+        } else flapRegenTimer = 0;
+
+        // JET
+        const now = Date.now();
+        const isBoosting = now < jetBoostEndTime;
+        if (jetPressed && !isOnGround && !isBoosting) {
+            const slot = inventory[selectedHotbar];
+            if (slot && slot.type === 'jet' && slot.count > 0) {
+                slot.count--;
+                jetBoostEndTime = now + FLIGHT.jetDuration * 1000;
+                const boostDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).normalize();
+                velocity.addScaledVector(boostDir, 12);
+                renderHotbar();
+                renderFullInventory();
+                jetPressed = false;
+            }
+        }
+        if (isBoosting) {
+            const boostDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).normalize();
+            velocity.addScaledVector(boostDir, FLIGHT.jetBoostAccel * delta);
+        }
+
+        let netLift = FLIGHT.gravity + glideLift + thermalStrength;
+        velocity.y += netLift * delta;
+        velocity.x *= FLIGHT.airDrag;
+        velocity.z *= FLIGHT.airDrag;
+
+        if (!isOnGround && speedKmh < FLIGHT.minAirSpeed) velocity.y -= 3 * delta;
+
+        if (isOnGround) {
+            if (move.forward && spaceHeld) {
+                takeoffRunSpeed += FLIGHT.groundAccel * delta;
+                takeoffRunSpeed = Math.min(takeoffRunSpeed, FLIGHT.takeoffSpeed + 5);
+                const runDir = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+                velocity.x = runDir.x * (takeoffRunSpeed / 3.6);
+                velocity.z = runDir.z * (takeoffRunSpeed / 3.6);
+                const warning = document.getElementById('takeoffWarning');
+                if (takeoffRunSpeed >= FLIGHT.takeoffSpeed) warning.style.opacity = '0';
+                else if (takeoffRunSpeed > 15) {
+                    warning.style.opacity = '0.8';
+                    warning.innerHTML = `🏃 RUNNING: ${Math.floor(takeoffRunSpeed)}/${FLIGHT.takeoffSpeed} km/h 🏃`;
+                } else warning.style.opacity = '0.5';
+            } else {
+                takeoffRunSpeed *= 0.96;
+                velocity.x *= 0.96;
+                velocity.z *= 0.96;
+                document.getElementById('takeoffWarning').style.opacity = '0';
+            }
+
+            if (takeoffRunSpeed >= FLIGHT.takeoffSpeed && spaceHeld && move.forward) {
+                isOnGround = false;
+                velocity.y = 7.0;
+                takeoffRunSpeed = 0;
+                document.getElementById('takeoffWarning').innerHTML = '🚀 LIFT OFF! 🚀';
+                document.getElementById('takeoffWarning').style.opacity = '1';
+                setTimeout(() => {
+                    document.getElementById('takeoffWarning').style.opacity = '0';
+                    document.getElementById('takeoffWarning').innerHTML = '🏃‍♂️ RUN TO 28 KM/H TO TAKE OFF! HOLD W + SPACE 🏃‍♂️';
+                }, 1500);
+            }
+        }
+
+        isGliding = spaceHeld && !isOnGround;
+
+        if (isOnGround) {
+            const moveDir = new THREE.Vector3();
+            if (move.forward) moveDir.z -= 1;
+            if (move.backward) moveDir.z += 1;
+            if (move.left) moveDir.x -= 1;
+            if (move.right) moveDir.x += 1;
+            if (moveDir.length() > 0) moveDir.normalize();
+            const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            const rightDir = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+            let horiz = new THREE.Vector3().addScaledVector(forwardDir, -moveDir.z).addScaledVector(rightDir, moveDir.x);
+            horiz.y = 0;
+            if (horiz.length() > 0) horiz.normalize();
+            const targetSpeed = 20;
+            const targetVelX = horiz.x * targetSpeed;
+            const targetVelZ = horiz.z * targetSpeed;
+            const steering = 4.5;
+            velocity.x += (targetVelX - velocity.x) * steering * delta;
+            velocity.z += (targetVelZ - velocity.z) * steering * delta;
+        } else {
+            const lookDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).normalize();
+            const currentSpeed = velocity.length();
+            if (currentSpeed > 0.5) {
+                const targetVel = lookDir.multiplyScalar(currentSpeed);
+                velocity.lerp(targetVel, FLIGHT.alignmentStrength);
+            }
+        }
+
+        camera.position.x += velocity.x * delta;
+        camera.position.z += velocity.z * delta;
+        camera.position.y += velocity.y * delta;
+
+        // ==================== GROUND COLLISION + CRASH DETECTION ====================
+        const wasOnGround = isOnGround;
+
+        // Reuse terrainH that was already calculated at the top
+        if (camera.position.y - 1.3 <= terrainH) {
+            camera.position.y = terrainH + 1.3;
+            velocity.y = 0;
+            isOnGround = true;
+        } else {
+            isOnGround = false;
+        }
+
+        // Trigger crash damage only when we just landed this frame
+        if (wasOnGround === false && isOnGround === true) {
+            checkCrashDamage();
+        }
+
+
+        if (camera.position.y > 200) camera.position.y = 200;
+
+        let status = isOnGround ? '🪹 GROUNDED' : (isBoosting ? '🚀 JET BOOSTING' : (isGliding ? '🕊️ GLIDING' : '🌀 FLYING'));
+        if (isOnGround && move.forward && spaceHeld && takeoffRunSpeed > 0) {
+            status = `🏃 TAKEOFF (${Math.floor(takeoffRunSpeed)}/${FLIGHT.takeoffSpeed} km/h)`;
+        }
+        document.getElementById('flightStatus').innerHTML = status;
+        document.getElementById('biomeTag').innerHTML = biome.toUpperCase();
+    }
+
+function updateHealth(delta) {
+    const now = Date.now();
+
+    // Passive regeneration: +1 HP every second
+    if (now - lastRegenTime >= 1000) {
+        if (playerHealth < MAX_HEALTH) {
+            playerHealth = Math.min(MAX_HEALTH, playerHealth + 1);
+        }
+        lastRegenTime = now;
+    }
+
+    // Update UI
+    const healthPercent = (playerHealth / MAX_HEALTH) * 100;
+    const healthFill = document.getElementById('healthFill');
+    const healthText = document.getElementById('healthText');
+
+    healthFill.style.width = healthPercent + '%';
+    healthText.innerHTML = Math.floor(playerHealth) + " / 150";
+
+    // Low health warning color
+    if (playerHealth < 40) {
+        healthFill.style.background = 'linear-gradient(90deg, #ff0000, #ff8800)';
+    } else {
+        healthFill.style.background = 'linear-gradient(90deg, #ff5555, #ffaa77)';
+    }
+}
+function checkCrashDamage() {
+    const horizontalSpeed = Math.hypot(velocity.x, velocity.z);
+    const speedKmh = horizontalSpeed * 3.6;
+
+    if (speedKmh > 40) {
+        const damage = Math.floor((speedKmh - 40) * 2);
+        playerHealth = Math.max(0, playerHealth - damage);
+
+        // Visual feedback
+        const warning = document.getElementById('takeoffWarning');
+        warning.innerHTML = `💥 CRASH LANDING! -${damage} HP`;
+        warning.style.opacity = '1';
+        warning.style.borderColor = '#ff0000';
+        warning.style.color = '#ff5555';
+
+        setTimeout(() => {
+            warning.style.opacity = '0';
+        }, 2000);
+
+        console.log(`💥 Crash! ${damage} damage at ${Math.floor(speedKmh)} km/h`);
+    }
+}
+
+        // Update UI
+        const healthPercent = (playerHealth / MAX_HEALTH) * 100;   // ← DELETE THIS BLOCK
+        document.getElementById('healthFill').style.width = healthPercent + '%';
+        document.getElementById('healthText').innerHTML = Math.floor(playerHealth) + " / 150";
+
+        // Visual warning when low
+        if (playerHealth < 40) {
+            document.getElementById('healthFill').style.background = 'linear-gradient(90deg, #ff0000, #ff8800)';
+        } else {
+            document.getElementById('healthFill').style.background = 'linear-gradient(90deg, #ff5555, #ffaa77)';
+        }
+
+    let sunLight, hemiLight;
+
+function openChest(chest, flapAmount) {
+    if (chest.userData && chest.userData.opened) return;
+
+    chest.userData.opened = true;
+
+    addItemToInventory('flap', flapAmount);
+
+    const warning = document.getElementById('takeoffWarning');
+    warning.innerHTML = `🎁 CHEST OPENED! +${flapAmount} FLAPS`;
+    warning.style.opacity = '1';
+    warning.style.color = '#aaffaa';
+
+    setTimeout(() => {
+        warning.style.opacity = '0';
+    }, 2200);
+
+    // Lift the lid
+    if (chest.children && chest.children.length > 0) {
+        chest.children[0].position.y += 2;
+    }
+}
+
+// Show prompt
+function showOpenPrompt() {
+    const warning = document.getElementById('takeoffWarning');
+    warning.innerHTML = `🪵 PRESS E TO OPEN CHEST`;
+    warning.style.opacity = '1';
+    warning.style.color = '#ffdd88';
+}
+
+
+
+// Helper function to add items safely
+function addItemToInventory(type, count) {
+    for (let i = 0; i < inventory.length; i++) {
+        if (inventory[i] && inventory[i].type === type && inventory[i].count < ITEM_DB[type].maxStack) {
+            inventory[i].count += count;
+            renderHotbar();
+            renderFullInventory();
+            return;
+        }
+    }
+    // Find empty slot
+    for (let i = 0; i < inventory.length; i++) {
+        if (!inventory[i]) {
+            inventory[i] = { type: type, count: count };
+            renderHotbar();
+            renderFullInventory();
+            return;
+        }
+    }
+}
+
+function checkChestInteraction() {
+    let nearAnyChest = false;
+
+    // Starter runway chest
+    if (chestMesh) {
+        const dist = camera.position.distanceTo(chestMesh.position);
+        if (dist < 25) {                    // ← Increased from 8 to 25
+            nearAnyChest = true;
+            showOpenPrompt();
+            if (keys && keys['e']) {
+                openChest(chestMesh, 60);
+                keys['e'] = false;          // Prevent holding E from spamming
+                return;
+            }
+        }
+    }
+
+    // House chests
+    scene.traverse((obj) => {
+        if (obj.userData && obj.userData.isHouseChest) {
+            const dist = camera.position.distanceTo(obj.position);
+            if (dist < 25) {                // ← Increased from 8 to 25
+                nearAnyChest = true;
+                showOpenPrompt();
+                if (keys && keys['e']) {
+                    openChest(obj, 128);
+                    keys['e'] = false;
+                    return;
+                }
+            }
+        }
+    });
+
+    // Hide prompt when far away
+    if (!nearAnyChest) {
+        const warning = document.getElementById('takeoffWarning');
+        if (warning.innerHTML.includes("PRESS E TO OPEN")) {
+            warning.style.opacity = '0';
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+    function init() {
+    initPerlin();
+    initTextures();
+    clock = new THREE.Clock();
+    scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x88aaff, 0.0015);
+    scene.background = new THREE.Color(0x88aaff);
+
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.3, 2600);
+    camera.position.set(25, 45, 60);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    hemiLight = new THREE.HemisphereLight(0xaaccff, 0x446644, 0.7);
+    scene.add(hemiLight);
+    sunLight = new THREE.DirectionalLight(0xffeedd, 1.3);
+    sunLight.position.set(100, 150, 80);
+    scene.add(sunLight);
+
+
+    createWaterAndClouds();
+
+    // === SPAWN RUNWAY SYSTEM ===
+    spawnChunkX = Math.floor(camera.position.x / FLIGHT.chunkSize);
+    spawnChunkZ = Math.floor(camera.position.z / FLIGHT.chunkSize);
+
+    for (let dx = -FLIGHT.renderDist; dx <= FLIGHT.renderDist; dx++) {
+        for (let dz = -FLIGHT.renderDist; dz <= FLIGHT.renderDist; dz++) {
+            createChunk(spawnChunkX + dx, spawnChunkZ + dz);
+        }
+    }
+
+    // Make starting chunk flat like a runway
+    flattenSpawnRunway();
+
+    // Spawn chest with starter loot
+    spawnStarterChest();
+
+    initInventory();
+    renderHotbar();
+
+    renderer.domElement.addEventListener('click', () => renderer.domElement.requestPointerLock());
+    document.addEventListener('mousemove', e => {
+        if (document.pointerLockElement === renderer.domElement) {
+            targetYaw -= e.movementX * 0.0028;
+            targetPitch -= e.movementY * 0.0028;
+            targetPitch = Math.max(-1.2, Math.min(1.2, targetPitch));
+        }
+    });
+
+    window.addEventListener('keydown', e => {
+        const k = e.key.toLowerCase();
+
+        if (k === 'w') move.forward = true;
+        if (k === 's') move.backward = true;
+        if (k === 'a') move.left = true;
+        if (k === 'd') move.right = true;
+        if (k === ' ') { spaceHeld = true; e.preventDefault(); }
+        if (k === 'f') { flapPressed = true; e.preventDefault(); }
+        if (k === 'j') { jetPressed = true; e.preventDefault(); }
+        if (k === 'c') {
+            if (craftingOpen) closeCrafting();
+            else openCrafting();
+        }
+        if (e.key >= '1' && e.key <= '9') {
+            selectedHotbar = parseInt(e.key) - 1;
+            renderHotbar();
+            renderFullInventory();
+        }
+        if (k === 'b') {
+            const screen = document.getElementById('inventoryScreen');
+            screen.style.display = screen.style.display === 'none' ? 'block' : 'none';
+            if (screen.style.display === 'block') renderFullInventory();
+        }
+
+        // === KEYS OBJECT FOR CHECKING E ===
+        keys[k] = true;
+    });
+
+    window.addEventListener('keyup', e => {
+        const k = e.key.toLowerCase();
+        if (k === 'w') move.forward = false;
+        if (k === 's') move.backward = false;
+        if (k === 'a') move.left = false;
+        if (k === 'd') move.right = false;
+        if (k === ' ') { spaceHeld = false; e.preventDefault(); }
+        if (k === 'f') { flapPressed = false; e.preventDefault(); }
+        if (k === 'j') { jetPressed = false; e.preventDefault(); }
+        keys[k] = false;
+    });
+        // Left click to ram/attack hunters
+    renderer.domElement.addEventListener('mousedown', (e) => {
+        if (document.pointerLockElement === renderer.domElement && e.button === 0) {
+            keys['click'] = true;
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+}
+    function animate() {
+        const delta = Math.min(clock.getDelta(), 0.033);
+        const time = performance.now() * 0.002;
+
+        yaw = THREE.MathUtils.lerp(yaw, targetYaw, 0.22);
+        pitch = THREE.MathUtils.lerp(pitch, targetPitch, 0.22);
+        camera.rotation.order = 'YXZ';
+        camera.rotation.y = yaw;
+        camera.rotation.x = pitch;
+
+        updatePhysics(delta);
+        updateHealth(delta);
+        updateDayNight(delta);          // ← new
+        updateHunters(delta);           // ← new
+        updateBloodParticles(delta);    // new
+        checkChestInteraction();
+        updateChunks();
+
+        if (waterMesh && waterMesh.geometry) {
+            const pos = waterMesh.geometry.attributes.position;
+            if (pos) {
+                for (let i = 0; i < pos.count; i++) {
+                    const x = pos.getX(i), z = pos.getZ(i);
+                    pos.setY(i, Math.sin(x * 0.012 + time * 2.2) * 0.5 + Math.cos(z * 0.014 + time * 1.7) * 0.5);
+                }
+                pos.needsUpdate = true;
+            }
+        }
+        if (cloudsGroup) {
+            cloudsGroup.position.x = Math.sin(time * 0.012) * 60;
+            cloudsGroup.position.z = Math.cos(time * 0.01) * 50;
+        }
+
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+    }
+
+    init();
+    animate();
+
+</script>
+</body>
+</html>
