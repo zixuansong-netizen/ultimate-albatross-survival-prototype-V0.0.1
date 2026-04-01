@@ -139,4 +139,4 @@ So download it, crash a few times, ram a hunter, and let me know what you think.
 
 ## 📄 License
 
-MIT — go wild. Fork it, break it, learn from it. Just don't sell it without giving credit, yeah?
+MIT — go wild. Fork it, break it, learn from it, give comments (both good or bad!). Just don't sell it (Well, it is might be too glitchy for sales).
